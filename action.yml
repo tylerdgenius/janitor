@@ -1,0 +1,25 @@
+name: Repo Janitor
+description: Clean up stale branches and PRs in a repository.
+author: Repo Janitor
+branding:
+  icon: trash-2
+  color: orange
+inputs:
+  branch_age_days:
+    description: Minimum branch age in days before applying cleanup rules.
+    required: false
+    default: "7"
+  desk_check_label:
+    description: Label indicating a PR has a desk check and should not be auto-drafted.
+    required: false
+    default: "desk-check"
+runs:
+  using: composite
+  steps:
+    - name: Repo janitor
+      uses: actions/github-script@v7
+      env:
+        BRANCH_AGE_DAYS: ${{ inputs.branch_age_days }}
+        DESK_CHECK_LABEL: ${{ inputs.desk_check_label }}
+      with:
+        script: scripts/repo-janitor.js
