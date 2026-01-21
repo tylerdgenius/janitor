@@ -92,7 +92,9 @@ const run = async ({ github, context, core }) => {
       `[janitor] Branch=${branch.name} lastCommitDate=${lastCommitDate || "missing"}`,
     );
     if (!lastCommitDate && branchCommitSha) {
-      log(`[janitor] Fetching commit details branch=${branch.name} sha=${branchCommitSha}`);
+      log(
+        `[janitor] Fetching commit details branch=${branch.name} sha=${branchCommitSha}`,
+      );
       try {
         const { data: commitData } = await github.rest.repos.getCommit({
           owner,
@@ -182,13 +184,19 @@ const run = async ({ github, context, core }) => {
           );
         } else {
           log(`Converting PR #${pr.number} to draft (no desk check).`);
-          await github.rest.pulls.update({
-            owner,
-            repo,
-            pull_number: pr.number,
-            draft: true,
-          });
-          summary.prsDrafted += 1;
+          try {
+            await github.rest.pulls.update({
+              owner,
+              repo,
+              pull_number: pr.number,
+              draft: true,
+            });
+            summary.prsDrafted += 1;
+          } catch (error) {
+            logError(
+              `[janitor] Failed to convert PR #${pr.number} to draft: ${error.message}`,
+            );
+          }
         }
         continue;
       }
@@ -198,13 +206,19 @@ const run = async ({ github, context, core }) => {
           log(`[dry-run] Would close stale draft PR #${pr.number}.`);
         } else {
           log(`Closing stale draft PR #${pr.number}.`);
-          await github.rest.pulls.update({
-            owner,
-            repo,
-            pull_number: pr.number,
-            state: "closed",
-          });
-          summary.prsClosed += 1;
+          try {
+            await github.rest.pulls.update({
+              owner,
+              repo,
+              pull_number: pr.number,
+              state: "closed",
+            });
+            summary.prsClosed += 1;
+          } catch (error) {
+            logError(
+              `[janitor] Failed to close PR #${pr.number}: ${error.message}`,
+            );
+          }
         }
       } else if (pr.draft) {
         log(
