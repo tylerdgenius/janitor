@@ -83,6 +83,14 @@ const run = async ({ github, context, core }) => {
       branch.commit?.commit?.author?.date ||
       branch.commit?.commit?.committer?.date;
 
+    log(
+      `[janitor] Retrieved lastCommitDate=${lastCommitDate} for branch=${branch.name}`,
+    );
+
+    log(
+      `[janitor] Branch=${branch.name} lastCommitDate=${lastCommitDate || "missing"}`,
+    );
+
     if (!lastCommitDate || !olderThanCutoff(lastCommitDate, now, cutoffMs)) {
       log(
         `[janitor] Skip recent branch=${branch.name} lastCommitDate=${lastCommitDate || "missing"}`,
@@ -90,7 +98,9 @@ const run = async ({ github, context, core }) => {
       continue;
     }
     summary.staleBranches += 1;
-    log(`[janitor] Stale branch=${branch.name} lastCommitDate=${lastCommitDate}`);
+    log(
+      `[janitor] Stale branch=${branch.name} lastCommitDate=${lastCommitDate}`,
+    );
 
     // Getting all avialable PRs for this branch.
     log(`[janitor] Fetching PRs for branch=${branch.name}`);
@@ -115,9 +125,7 @@ const run = async ({ github, context, core }) => {
       }
 
       if (dryRun) {
-        log(
-          `[dry-run] Would delete branch ${branch.name} (no open PRs).`,
-        );
+        log(`[dry-run] Would delete branch ${branch.name} (no open PRs).`);
       } else {
         log(`Deleting branch ${branch.name} (no open PRs).`);
         try {
@@ -128,9 +136,7 @@ const run = async ({ github, context, core }) => {
           });
           summary.deletedBranches += 1;
         } catch (error) {
-          logError(
-            `Failed to delete branch ${branch.name}: ${error.message}`,
-          );
+          logError(`Failed to delete branch ${branch.name}: ${error.message}`);
         }
       }
       continue;
@@ -181,7 +187,9 @@ const run = async ({ github, context, core }) => {
           summary.prsClosed += 1;
         }
       } else if (pr.draft) {
-        log(`[janitor] Draft PR not stale PR=${pr.number} updated_at=${pr.updated_at}`);
+        log(
+          `[janitor] Draft PR not stale PR=${pr.number} updated_at=${pr.updated_at}`,
+        );
       }
     }
   }
