@@ -1,4 +1,5 @@
 const hasDeskCheckComment = async ({ github, owner, repo, pullNumber, phrase }) => {
+  console.log("[janitor] [deskcheck.hasDeskCheckComment] start");
   if (!phrase) {
     return false;
   }
@@ -11,12 +12,16 @@ const hasDeskCheckComment = async ({ github, owner, repo, pullNumber, phrase }) 
   });
 
   return comments.some((comment) =>
-    String(comment.body || "").toLowerCase().includes(phrase)
+    String(comment.body || "").toLowerCase().includes(phrase),
   );
 };
 
-const hasDeskCheckLabel = (labels, labelName) =>
-  labels.some((label) => String(label.name || "").toLowerCase() === labelName);
+const hasDeskCheckLabel = (labels, labelName) => {
+  console.log("[janitor] [deskcheck.hasDeskCheckLabel] start");
+  return labels.some(
+    (label) => String(label.name || "").toLowerCase() === labelName,
+  );
+};
 
 module.exports = {
   hasDeskCheckComment,

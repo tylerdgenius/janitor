@@ -1,6 +1,14 @@
 const { sleep } = require("./utils");
+const { deleteBranches } = require("./branch-delete");
 
-const getApprovalDecision = async ({ github, owner, repo, issueNumber, approvers }) => {
+const getApprovalDecision = async ({
+  github,
+  owner,
+  repo,
+  issueNumber,
+  approvers,
+}) => {
+  console.log("[janitor] [approval.getApprovalDecision] start");
   const comments = await github.paginate(github.rest.issues.listComments, {
     owner,
     repo,
@@ -33,6 +41,7 @@ const requestApprovalAndMaybeDelete = async ({
   issueWaitMinutes,
   dryRun,
 }) => {
+  console.log("[janitor] [approval.requestApprovalAndMaybeDelete] start");
   if (branches.length === 0) {
     return null;
   }
@@ -85,22 +94,9 @@ const requestApprovalAndMaybeDelete = async ({
   }
 
   const shouldDelete = decision !== "deny";
-  const deletedBranches = [];
-
-  if (shouldDelete) {
-    for (const branchName of branches) {
-      try {
-        await github.rest.git.deleteRef({
-          owner,
-          repo,
-          ref: `heads/${branchName}`,
-        });
-        deletedBranches.push(branchName);
-      } catch (error) {
-        console.log(`Failed to delete branch ${branchName}: ${error.message}`);
-      }
-    }
-  }
+  const deletedBranches = shouldDelete
+    ? await deleteBranches({ github, owner, repo, branches, source: "approval" })
+    : [];
 
   const outcomeLines = [];
   if (decision) {

@@ -9,7 +9,7 @@ Clean up stale branches and PRs in a repository.
 - `branch_deny_patterns`: Comma-separated JavaScript regex patterns; branches matching any are excluded from cleanup. Default: empty
 - `desk_check_label`: Label indicating a PR has a desk check and should not be auto-drafted. Default: `desk-check`
 - `desk_check_comment_phrase`: Comment phrase indicating a PR has a desk check and should not be auto-drafted. Default: `desk check`
-- `issue_mention_users`: Comma-separated GitHub usernames to tag for approval when branches do not match allow patterns. Default: empty
+- `issue_mention_users`: Comma-separated GitHub usernames to tag for approval when branches do not match allow patterns. When allow patterns are empty, any stale branch deletion requires approval if this is set. Default: empty
 - `issue_wait_minutes`: Minutes to wait for issue approval before defaulting to delete. Default: `20`
 - `dry_run`: When `true`, logs actions without making changes. Default: `false`
 
@@ -23,7 +23,7 @@ permissions:
 
 ## Approval flow for non-matching branches
 
-If `branch_allow_patterns` is set and a stale branch does not match any allow pattern, the action creates an issue asking whether to delete those branches. If a tagged user replies with `approve`, it deletes them; `deny` keeps them. If there is no response within `issue_wait_minutes`, it defaults to delete and comments with the list of deleted branches.
+If `branch_allow_patterns` is set and a stale branch does not match any allow pattern, the action creates an issue asking whether to delete those branches. If `branch_allow_patterns` is empty but `issue_mention_users` is set, the action requires approval for all stale branches without open PRs. If a tagged user replies with `approve`, it deletes them; `deny` keeps them. If there is no response within `issue_wait_minutes`, it defaults to delete and comments with the list of deleted branches.
 
 ## Usage
 

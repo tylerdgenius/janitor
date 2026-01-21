@@ -26,7 +26,7 @@ inputs:
     required: false
     default: "desk check"
   issue_mention_users:
-    description: Comma-separated GitHub usernames to tag for approval when branches do not match allow patterns.
+    description: Comma-separated GitHub usernames to tag for approval when branches do not match allow patterns (or when allow patterns are empty).
     required: false
     default: ""
   issue_wait_minutes:

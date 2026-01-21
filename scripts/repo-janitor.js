@@ -10,6 +10,7 @@ const { loadConfig } = require(path.join(actionPath, "scripts/lib/constants"));
 const { requestApprovalAndMaybeDelete } = require(
   path.join(actionPath, "scripts/lib/approval"),
 );
+const { deleteBranches } = require(path.join(actionPath, "scripts/lib/branch-delete"));
 
 const run = async ({ github, context, core }) => {
   const log = core?.info ? core.info.bind(core) : console.log;
@@ -113,10 +114,17 @@ const run = async ({ github, context, core }) => {
     );
 
     if (openPrs.length === 0) {
-      if (allowPatterns.length > 0 && !matchesAny(branch.name, allowPatterns)) {
+      const requiresApproval =
+        (allowPatterns.length > 0 && !matchesAny(branch.name, allowPatterns)) ||
+        (allowPatterns.length === 0 && mentionUsers.length > 0);
+      if (requiresApproval) {
         approvalBranches.push(branch.name);
         summary.approvalBranches += 1;
-        log(`[janitor] Needs approval branch=${branch.name}`);
+        const approvalReason =
+          allowPatterns.length > 0 ? "allowlist-miss" : "reviewers-configured";
+        log(
+          `[janitor] Needs approval branch=${branch.name} reason=${approvalReason}`,
+        );
         continue;
       }
 
@@ -124,15 +132,15 @@ const run = async ({ github, context, core }) => {
         log(`[dry-run] Would delete branch ${branch.name} (no open PRs).`);
       } else {
         log(`Deleting branch ${branch.name} (no open PRs).`);
-        try {
-          await github.rest.git.deleteRef({
-            owner,
-            repo,
-            ref: `heads/${branch.name}`,
-          });
+        const deletedBranches = await deleteBranches({
+          github,
+          owner,
+          repo,
+          branches: [branch.name],
+          source: "direct",
+        });
+        if (deletedBranches.length > 0) {
           summary.deletedBranches += 1;
-        } catch (error) {
-          logError(`Failed to delete branch ${branch.name}: ${error.message}`);
         }
       }
       continue;
