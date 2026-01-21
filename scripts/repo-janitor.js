@@ -160,13 +160,19 @@ const run = async ({ github, context, core }) => {
           );
         } else {
           log(`Converting PR #${pr.number} to draft (no desk check).`);
-          await github.rest.pulls.update({
-            owner,
-            repo,
-            pull_number: pr.number,
-            draft: true,
-          });
-          summary.prsDrafted += 1;
+          try {
+            await github.rest.pulls.update({
+              owner,
+              repo,
+              pull_number: pr.number,
+              draft: true,
+            });
+            summary.prsDrafted += 1;
+          } catch (error) {
+            logError(
+              `[janitor] Failed to convert PR #${pr.number} to draft: ${error.message}`,
+            );
+          }
         }
         continue;
       }
