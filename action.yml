@@ -9,10 +9,34 @@ inputs:
     description: Minimum branch age in days before applying cleanup rules.
     required: false
     default: "7"
+  branch_allow_patterns:
+    description: Comma-separated JavaScript regex patterns; branches must match at least one to be auto-cleaned.
+    required: false
+    default: ""
+  branch_deny_patterns:
+    description: Comma-separated JavaScript regex patterns; branches matching any are excluded from cleanup.
+    required: false
+    default: ""
   desk_check_label:
     description: Label indicating a PR has a desk check and should not be auto-drafted.
     required: false
     default: "desk-check"
+  desk_check_comment_phrase:
+    description: Comment phrase indicating a PR has a desk check and should not be auto-drafted.
+    required: false
+    default: "desk check"
+  issue_mention_users:
+    description: Comma-separated GitHub usernames to tag for approval when branches do not match allow patterns.
+    required: false
+    default: ""
+  issue_wait_minutes:
+    description: Minutes to wait for issue approval before defaulting to delete.
+    required: false
+    default: "20"
+  dry_run:
+    description: When true, logs actions without making changes.
+    required: false
+    default: "false"
 runs:
   using: composite
   steps:
@@ -20,6 +44,12 @@ runs:
       uses: actions/github-script@v7
       env:
         BRANCH_AGE_DAYS: ${{ inputs.branch_age_days }}
+        BRANCH_ALLOW_PATTERNS: ${{ inputs.branch_allow_patterns }}
+        BRANCH_DENY_PATTERNS: ${{ inputs.branch_deny_patterns }}
         DESK_CHECK_LABEL: ${{ inputs.desk_check_label }}
+        DESK_CHECK_COMMENT_PHRASE: ${{ inputs.desk_check_comment_phrase }}
+        ISSUE_MENTION_USERS: ${{ inputs.issue_mention_users }}
+        ISSUE_WAIT_MINUTES: ${{ inputs.issue_wait_minutes }}
+        DRY_RUN: ${{ inputs.dry_run }}
       with:
-        script: scripts/repo-janitor.js
+        script: ${{ github.action_path }}/scripts/repo-janitor.js

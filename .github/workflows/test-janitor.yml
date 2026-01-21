@@ -7,10 +7,34 @@ on:
         description: Minimum branch age in days before applying cleanup rules.
         type: number
         default: 7
+      branch_allow_patterns:
+        description: Comma-separated JavaScript regex patterns for allowlist.
+        type: string
+        default: ""
+      branch_deny_patterns:
+        description: Comma-separated JavaScript regex patterns for denylist.
+        type: string
+        default: ""
       desk_check_label:
         description: Label indicating a PR has a desk check and should not be auto-drafted.
         type: string
         default: desk-check
+      desk_check_comment_phrase:
+        description: Comment phrase indicating a PR has a desk check.
+        type: string
+        default: desk check
+      issue_mention_users:
+        description: Comma-separated GitHub usernames to tag for approval.
+        type: string
+        default: ""
+      issue_wait_minutes:
+        description: Minutes to wait for issue approval before defaulting to delete.
+        type: number
+        default: 20
+      dry_run:
+        description: When true, logs actions without making changes.
+        type: boolean
+        default: true
   schedule:
     - cron: "0 2 * * *"
 
@@ -28,4 +52,10 @@ jobs:
         uses: ./
         with:
           branch_age_days: ${{ inputs.branch_age_days || 7 }}
+          branch_allow_patterns: ${{ inputs.branch_allow_patterns || '' }}
+          branch_deny_patterns: ${{ inputs.branch_deny_patterns || '' }}
           desk_check_label: ${{ inputs.desk_check_label || 'desk-check' }}
+          desk_check_comment_phrase: ${{ inputs.desk_check_comment_phrase || 'desk check' }}
+          issue_mention_users: ${{ inputs.issue_mention_users || '' }}
+          issue_wait_minutes: ${{ inputs.issue_wait_minutes || 20 }}
+          dry_run: ${{ inputs.dry_run }}
