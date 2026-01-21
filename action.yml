@@ -5,6 +5,10 @@ branding:
   icon: trash-2
   color: orange
 inputs:
+  github_token:
+    description: GitHub token with issues: write to open approval issues.
+    required: false
+    default: ${{ github.token }}
   branch_age_days:
     description: Minimum branch age in days before applying cleanup rules.
     required: false
@@ -52,6 +56,7 @@ runs:
         ISSUE_WAIT_MINUTES: ${{ inputs.issue_wait_minutes }}
         DRY_RUN: ${{ inputs.dry_run }}
       with:
+        github-token: ${{ inputs.github_token }}
         script: |
           core.info("[janitor] Loading action script.");
           const path = require("path");

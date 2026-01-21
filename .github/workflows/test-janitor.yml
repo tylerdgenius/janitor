@@ -41,6 +41,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   cleanup:
@@ -51,6 +52,7 @@ jobs:
       - name: Run Repo Janitor action (local)
         uses: ./
         with:
+          github_token: ${{ secrets.REPO_JANITOR_TOKEN || github.token }}
           branch_age_days: ${{ inputs.branch_age_days || 7 }}
           branch_allow_patterns: ${{ inputs.branch_allow_patterns || '' }}
           branch_deny_patterns: ${{ inputs.branch_deny_patterns || '' }}

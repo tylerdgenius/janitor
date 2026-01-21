@@ -19,6 +19,7 @@ Clean up stale branches and PRs in a repository.
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 ```
 
 ## Approval flow for non-matching branches
@@ -45,6 +46,7 @@ jobs:
     steps:
       - uses: your-org/repo-janitor-action@v1
         with:
+          github_token: ${{ secrets.REPO_JANITOR_TOKEN }}
           branch_age_days: 7
           desk_check_label: desk-check
           desk_check_comment_phrase: desk check
