@@ -52,4 +52,7 @@ runs:
         ISSUE_WAIT_MINUTES: ${{ inputs.issue_wait_minutes }}
         DRY_RUN: ${{ inputs.dry_run }}
       with:
-        script: ${{ github.action_path }}/scripts/repo-janitor.js
+        script: |
+          const path = require("path");
+          const run = require(path.join(process.env.GITHUB_ACTION_PATH, "scripts/repo-janitor.js"));
+          await run({ github, context });

@@ -11,7 +11,7 @@ const { requestApprovalAndMaybeDelete } = require(
   path.join(actionPath, "scripts/lib/approval"),
 );
 
-const run = async () => {
+const run = async ({ github, context }) => {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
   const now = Date.now();
@@ -155,4 +155,4 @@ const run = async () => {
   });
 };
 
-await run();
+module.exports = run;
