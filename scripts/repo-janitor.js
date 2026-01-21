@@ -185,23 +185,34 @@ const run = async ({ github, context, core }) => {
         } else {
           log(`Converting PR #${pr.number} to draft (no desk check).`);
           try {
-            const updateResponse = await github.rest.pulls.update({
-              owner,
-              repo,
-              pull_number: pr.number,
-              draft: true,
-            });
-            summary.prsDrafted += 1;
+            let pullRequestId = pr.node_id;
+            if (!pullRequestId) {
+              const { data: prData } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: pr.number,
+              });
+              pullRequestId = prData.node_id;
+            }
+
+            const mutation = `
+              mutation($pullRequestId: ID!) {
+                convertPullRequestToDraft(input: { pullRequestId: $pullRequestId }) {
+                  pullRequest {
+                    id
+                    number
+                    isDraft
+                  }
+                }
+              }
+            `;
+            const result = await github.graphql(mutation, { pullRequestId });
+            const isDraft = result?.convertPullRequestToDraft?.pullRequest?.isDraft;
+            if (isDraft) {
+              summary.prsDrafted += 1;
+            }
             log(
-              `[janitor] PR #${pr.number} update status=${updateResponse.status} draft=${updateResponse.data?.draft}`,
-            );
-            const { data: refreshedPr } = await github.rest.pulls.get({
-              owner,
-              repo,
-              pull_number: pr.number,
-            });
-            log(
-              `[janitor] PR #${pr.number} refreshed draft=${refreshedPr.draft} state=${refreshedPr.state}`,
+              `[janitor] PR #${pr.number} convertToDraft isDraft=${isDraft}`,
             );
           } catch (error) {
             logError(
