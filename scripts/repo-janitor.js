@@ -79,7 +79,8 @@ const run = async ({ github, context, core }) => {
       continue;
     }
 
-    const lastCommitDate =
+    const branchCommitSha = branch.commit?.sha;
+    let lastCommitDate =
       branch.commit?.commit?.author?.date ||
       branch.commit?.commit?.committer?.date;
 
@@ -90,6 +91,25 @@ const run = async ({ github, context, core }) => {
     log(
       `[janitor] Branch=${branch.name} lastCommitDate=${lastCommitDate || "missing"}`,
     );
+    if (!lastCommitDate && branchCommitSha) {
+      log(`[janitor] Fetching commit details branch=${branch.name} sha=${branchCommitSha}`);
+      try {
+        const { data: commitData } = await github.rest.repos.getCommit({
+          owner,
+          repo,
+          ref: branchCommitSha,
+        });
+        lastCommitDate =
+          commitData.commit?.author?.date || commitData.commit?.committer?.date;
+        log(
+          `[janitor] Commit details branch=${branch.name} lastCommitDate=${lastCommitDate || "missing"}`,
+        );
+      } catch (error) {
+        logError(
+          `[janitor] Failed to fetch commit details branch=${branch.name} sha=${branchCommitSha}: ${error.message}`,
+        );
+      }
+    }
 
     if (!lastCommitDate || !olderThanCutoff(lastCommitDate, now, cutoffMs)) {
       log(
