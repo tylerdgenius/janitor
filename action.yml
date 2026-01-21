@@ -6,7 +6,7 @@ branding:
   color: orange
 inputs:
   github_token:
-    description: GitHub token with issues: write to open approval issues.
+    description: "GitHub token with issues: write to open approval issues."
     required: false
     default: ${{ github.token }}
   branch_age_days:
