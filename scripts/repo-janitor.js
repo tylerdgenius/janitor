@@ -42,20 +42,13 @@ const run = async ({ github, context, core }) => {
   };
 
   log(
-    `[janitor] Start repo=${owner}/${repo} dryRun=${dryRun} cutoffDays=${branchAgeDays} allowPatterns=${allowPatterns.length} denyPatterns=${denyPatterns.length}`,
-  );
-  log(
-    `[janitor] Config deskCheckLabel=${deskCheckLabel} deskCheckPhrase=${deskCheckCommentPhrase} mentionUsers=${mentionUsers.length} issueWaitMinutes=${issueWaitMinutes}`,
+    `[janitor] Start repo=${owner}/${repo} dryRun=${dryRun} cutoffDays=${branchAgeDays} allowPatterns=${allowPatterns.length} denyPatterns=${denyPatterns.length} deskCheckLabel=${deskCheckLabel} deskCheckPhrase=${deskCheckCommentPhrase} mentionUsers=${mentionUsers.length} issueWaitMinutes=${issueWaitMinutes}`,
   );
 
   // I want to find the default branch so it can be excluded from deletion.
-  log("[janitor] Fetching repo info.");
   const { data: repoInfo } = await github.rest.repos.get({ owner, repo });
   const defaultBranch = repoInfo.default_branch;
 
-  log(`[janitor] Default branch is ${defaultBranch}`);
-
-  log("[janitor] Fetching branches.");
   const branches = await github.paginate(github.rest.repos.listBranches, {
     owner,
     repo,
@@ -68,14 +61,11 @@ const run = async ({ github, context, core }) => {
   const approvalBranches = [];
 
   for (const branch of branches) {
-    log(`[janitor] Inspecting branch=${branch.name}`);
     if (branch.name === defaultBranch) {
-      log(`[janitor] Skip default branch=${branch.name}`);
       continue;
     }
 
     if (denyPatterns.length > 0 && matchesAny(branch.name, denyPatterns)) {
-      log(`[janitor] Skip denied branch=${branch.name}`);
       continue;
     }
 
@@ -84,17 +74,7 @@ const run = async ({ github, context, core }) => {
       branch.commit?.commit?.author?.date ||
       branch.commit?.commit?.committer?.date;
 
-    log(
-      `[janitor] Retrieved lastCommitDate=${lastCommitDate} for branch=${branch.name}`,
-    );
-
-    log(
-      `[janitor] Branch=${branch.name} lastCommitDate=${lastCommitDate || "missing"}`,
-    );
     if (!lastCommitDate && branchCommitSha) {
-      log(
-        `[janitor] Fetching commit details branch=${branch.name} sha=${branchCommitSha}`,
-      );
       try {
         const { data: commitData } = await github.rest.repos.getCommit({
           owner,
@@ -103,9 +83,6 @@ const run = async ({ github, context, core }) => {
         });
         lastCommitDate =
           commitData.commit?.author?.date || commitData.commit?.committer?.date;
-        log(
-          `[janitor] Commit details branch=${branch.name} lastCommitDate=${lastCommitDate || "missing"}`,
-        );
       } catch (error) {
         logError(
           `[janitor] Failed to fetch commit details branch=${branch.name} sha=${branchCommitSha}: ${error.message}`,
@@ -114,18 +91,14 @@ const run = async ({ github, context, core }) => {
     }
 
     if (!lastCommitDate || !olderThanCutoff(lastCommitDate, now, cutoffMs)) {
-      log(
-        `[janitor] Skip recent branch=${branch.name} lastCommitDate=${lastCommitDate || "missing"}`,
-      );
+      if (!lastCommitDate) {
+        log(`[janitor] Skip branch=${branch.name} reason=missing_last_commit_date`);
+      }
       continue;
     }
     summary.staleBranches += 1;
-    log(
-      `[janitor] Stale branch=${branch.name} lastCommitDate=${lastCommitDate}`,
-    );
 
     // Getting all avialable PRs for this branch.
-    log(`[janitor] Fetching PRs for branch=${branch.name}`);
     const prs = await github.paginate(github.rest.pulls.list, {
       owner,
       repo,
@@ -134,9 +107,10 @@ const run = async ({ github, context, core }) => {
       per_page: 100,
     });
 
-    log(`[janitor] PRs found branch=${branch.name} total=${prs.length}`);
     const openPrs = prs.filter((pr) => pr.state === "open");
-    log(`[janitor] Open PRs branch=${branch.name} open=${openPrs.length}`);
+    log(
+      `[janitor] Stale branch=${branch.name} lastCommitDate=${lastCommitDate} openPrs=${openPrs.length}`,
+    );
 
     if (openPrs.length === 0) {
       if (allowPatterns.length > 0 && !matchesAny(branch.name, allowPatterns)) {
@@ -165,7 +139,6 @@ const run = async ({ github, context, core }) => {
     }
 
     for (const pr of openPrs) {
-      log(`[janitor] Inspecting PR=${pr.number} draft=${pr.draft}`);
       const hasDeskCheck =
         hasDeskCheckLabel(pr.labels || [], deskCheckLabel) ||
         (await hasDeskCheckComment({
@@ -175,7 +148,6 @@ const run = async ({ github, context, core }) => {
           pullNumber: pr.number,
           phrase: deskCheckCommentPhrase,
         }));
-      log(`[janitor] PR=${pr.number} hasDeskCheck=${hasDeskCheck}`);
 
       if (!pr.draft && !hasDeskCheck) {
         if (dryRun) {
@@ -239,30 +211,17 @@ const run = async ({ github, context, core }) => {
             log(
               `[janitor] PR #${pr.number} close status=${closeResponse.status} state=${closeResponse.data?.state}`,
             );
-            const { data: refreshedPr } = await github.rest.pulls.get({
-              owner,
-              repo,
-              pull_number: pr.number,
-            });
-            log(
-              `[janitor] PR #${pr.number} refreshed state=${refreshedPr.state} draft=${refreshedPr.draft}`,
-            );
           } catch (error) {
             logError(
               `[janitor] Failed to close PR #${pr.number}: ${error.message}`,
             );
           }
         }
-      } else if (pr.draft) {
-        log(
-          `[janitor] Draft PR not stale PR=${pr.number} updated_at=${pr.updated_at}`,
-        );
       }
     }
   }
 
   // Issue-based approval flow for branches outside allow patterns.
-  log(`[janitor] Approval flow branches=${approvalBranches.length}`);
   await requestApprovalAndMaybeDelete({
     github,
     owner,
@@ -272,7 +231,6 @@ const run = async ({ github, context, core }) => {
     issueWaitMinutes,
     dryRun,
   });
-  log("[janitor] Approval flow completed.");
 
   log(
     `[janitor] Summary scanned=${summary.scannedBranches} stale=${summary.staleBranches} approvals=${summary.approvalBranches} deleted=${summary.deletedBranches} prsDrafted=${summary.prsDrafted} prsClosed=${summary.prsClosed}`,
