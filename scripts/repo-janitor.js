@@ -30,6 +30,18 @@ const run = async ({ github, context }) => {
   const allowPatterns = compilePatterns(allowPatternInput);
   const denyPatterns = compilePatterns(denyPatternInput);
   const mentionUsers = parseCsv(mentionUsersInput);
+  const summary = {
+    scannedBranches: 0,
+    staleBranches: 0,
+    deletedBranches: 0,
+    approvalBranches: 0,
+    prsDrafted: 0,
+    prsClosed: 0,
+  };
+
+  console.log(
+    `[janitor] Start repo=${owner}/${repo} dryRun=${dryRun} cutoffDays=${branchAgeDays} allowPatterns=${allowPatterns.length} denyPatterns=${denyPatterns.length}`,
+  );
 
   // I want to find the default branch so it can be excluded from deletion.
   const { data: repoInfo } = await github.rest.repos.get({ owner, repo });
@@ -40,6 +52,8 @@ const run = async ({ github, context }) => {
     repo,
     per_page: 100,
   });
+  summary.scannedBranches = branches.length;
+  console.log(`[janitor] Default branch=${defaultBranch} branches=${branches.length}`);
 
   // This will house the branch names that need approval before they can be deleted.
   const approvalBranches = [];
@@ -60,6 +74,7 @@ const run = async ({ github, context }) => {
     if (!lastCommitDate || !olderThanCutoff(lastCommitDate, now, cutoffMs)) {
       continue;
     }
+    summary.staleBranches += 1;
 
     // Getting all avialable PRs for this branch.
     const prs = await github.paginate(github.rest.pulls.list, {
@@ -75,6 +90,7 @@ const run = async ({ github, context }) => {
     if (openPrs.length === 0) {
       if (allowPatterns.length > 0 && !matchesAny(branch.name, allowPatterns)) {
         approvalBranches.push(branch.name);
+        summary.approvalBranches += 1;
         continue;
       }
 
@@ -90,6 +106,7 @@ const run = async ({ github, context }) => {
             repo,
             ref: `heads/${branch.name}`,
           });
+          summary.deletedBranches += 1;
         } catch (error) {
           console.log(
             `Failed to delete branch ${branch.name}: ${error.message}`,
@@ -123,6 +140,7 @@ const run = async ({ github, context }) => {
             pull_number: pr.number,
             draft: true,
           });
+          summary.prsDrafted += 1;
         }
         continue;
       }
@@ -138,6 +156,7 @@ const run = async ({ github, context }) => {
             pull_number: pr.number,
             state: "closed",
           });
+          summary.prsClosed += 1;
         }
       }
     }
@@ -153,6 +172,10 @@ const run = async ({ github, context }) => {
     issueWaitMinutes,
     dryRun,
   });
+
+  console.log(
+    `[janitor] Summary scanned=${summary.scannedBranches} stale=${summary.staleBranches} approvals=${summary.approvalBranches} deleted=${summary.deletedBranches} prsDrafted=${summary.prsDrafted} prsClosed=${summary.prsClosed}`,
+  );
 };
 
 module.exports = run;
