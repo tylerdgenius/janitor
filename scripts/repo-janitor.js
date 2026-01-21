@@ -41,6 +41,12 @@ const run = async ({ github, context, core }) => {
     prsClosed: 0,
   };
 
+  log(`[janitor] Loaded config from environment variables.`);
+
+  log(
+    `[janitor] Cut off ms=${cutoffMs} allowPatterns=${allowPatterns} denyPatterns=${denyPatterns}`,
+  );
+
   log(
     `[janitor] Start repo=${owner}/${repo} dryRun=${dryRun} cutoffDays=${branchAgeDays} allowPatterns=${allowPatterns.length} denyPatterns=${denyPatterns.length}`,
   );
@@ -90,7 +96,9 @@ const run = async ({ github, context, core }) => {
       continue;
     }
     summary.staleBranches += 1;
-    log(`[janitor] Stale branch=${branch.name} lastCommitDate=${lastCommitDate}`);
+    log(
+      `[janitor] Stale branch=${branch.name} lastCommitDate=${lastCommitDate}`,
+    );
 
     // Getting all avialable PRs for this branch.
     log(`[janitor] Fetching PRs for branch=${branch.name}`);
@@ -115,9 +123,7 @@ const run = async ({ github, context, core }) => {
       }
 
       if (dryRun) {
-        log(
-          `[dry-run] Would delete branch ${branch.name} (no open PRs).`,
-        );
+        log(`[dry-run] Would delete branch ${branch.name} (no open PRs).`);
       } else {
         log(`Deleting branch ${branch.name} (no open PRs).`);
         try {
@@ -128,9 +134,7 @@ const run = async ({ github, context, core }) => {
           });
           summary.deletedBranches += 1;
         } catch (error) {
-          logError(
-            `Failed to delete branch ${branch.name}: ${error.message}`,
-          );
+          logError(`Failed to delete branch ${branch.name}: ${error.message}`);
         }
       }
       continue;
@@ -181,7 +185,9 @@ const run = async ({ github, context, core }) => {
           summary.prsClosed += 1;
         }
       } else if (pr.draft) {
-        log(`[janitor] Draft PR not stale PR=${pr.number} updated_at=${pr.updated_at}`);
+        log(
+          `[janitor] Draft PR not stale PR=${pr.number} updated_at=${pr.updated_at}`,
+        );
       }
     }
   }
