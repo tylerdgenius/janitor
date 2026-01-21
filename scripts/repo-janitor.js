@@ -229,13 +229,24 @@ const run = async ({ github, context, core }) => {
         } else {
           log(`Closing stale draft PR #${pr.number}.`);
           try {
-            await github.rest.pulls.update({
+            const closeResponse = await github.rest.pulls.update({
               owner,
               repo,
               pull_number: pr.number,
               state: "closed",
             });
             summary.prsClosed += 1;
+            log(
+              `[janitor] PR #${pr.number} close status=${closeResponse.status} state=${closeResponse.data?.state}`,
+            );
+            const { data: refreshedPr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: pr.number,
+            });
+            log(
+              `[janitor] PR #${pr.number} refreshed state=${refreshedPr.state} draft=${refreshedPr.draft}`,
+            );
           } catch (error) {
             logError(
               `[janitor] Failed to close PR #${pr.number}: ${error.message}`,
