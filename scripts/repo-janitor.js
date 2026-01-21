@@ -10,7 +10,9 @@ const { loadConfig } = require(path.join(actionPath, "scripts/lib/constants"));
 const { requestApprovalAndMaybeDelete } = require(
   path.join(actionPath, "scripts/lib/approval"),
 );
-const { deleteBranches } = require(path.join(actionPath, "scripts/lib/branch-delete"));
+const { deleteBranches } = require(
+  path.join(actionPath, "scripts/lib/branch-delete"),
+);
 
 const run = async ({ github, context, core }) => {
   const log = core?.info ? core.info.bind(core) : console.log;
@@ -93,7 +95,9 @@ const run = async ({ github, context, core }) => {
 
     if (!lastCommitDate || !olderThanCutoff(lastCommitDate, now, cutoffMs)) {
       if (!lastCommitDate) {
-        log(`[janitor] Skip branch=${branch.name} reason=missing_last_commit_date`);
+        log(
+          `[janitor] Skip branch=${branch.name} reason=missing_last_commit_date`,
+        );
       }
       continue;
     }
@@ -187,13 +191,12 @@ const run = async ({ github, context, core }) => {
               }
             `;
             const result = await github.graphql(mutation, { pullRequestId });
-            const isDraft = result?.convertPullRequestToDraft?.pullRequest?.isDraft;
+            const isDraft =
+              result?.convertPullRequestToDraft?.pullRequest?.isDraft;
             if (isDraft) {
               summary.prsDrafted += 1;
             }
-            log(
-              `[janitor] PR #${pr.number} convertToDraft isDraft=${isDraft}`,
-            );
+            log(`[janitor] PR #${pr.number} convertToDraft isDraft=${isDraft}`);
           } catch (error) {
             logError(
               `[janitor] Failed to convert PR #${pr.number} to draft: ${error.message}`,
