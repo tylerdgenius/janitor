@@ -11,7 +11,8 @@ const { requestApprovalAndMaybeDelete } = require(
   path.join(actionPath, "scripts/lib/approval"),
 );
 
-const run = async ({ github, context }) => {
+const run = async ({ github, context, core }) => {
+  const log = core?.info ? core.info.bind(core) : console.log;
   const owner = context.repo.owner;
   const repo = context.repo.repo;
   const now = Date.now();
@@ -39,7 +40,7 @@ const run = async ({ github, context }) => {
     prsClosed: 0,
   };
 
-  console.log(
+  log(
     `[janitor] Start repo=${owner}/${repo} dryRun=${dryRun} cutoffDays=${branchAgeDays} allowPatterns=${allowPatterns.length} denyPatterns=${denyPatterns.length}`,
   );
 
@@ -53,7 +54,7 @@ const run = async ({ github, context }) => {
     per_page: 100,
   });
   summary.scannedBranches = branches.length;
-  console.log(`[janitor] Default branch=${defaultBranch} branches=${branches.length}`);
+  log(`[janitor] Default branch=${defaultBranch} branches=${branches.length}`);
 
   // This will house the branch names that need approval before they can be deleted.
   const approvalBranches = [];
@@ -95,11 +96,11 @@ const run = async ({ github, context }) => {
       }
 
       if (dryRun) {
-        console.log(
+        log(
           `[dry-run] Would delete branch ${branch.name} (no open PRs).`,
         );
       } else {
-        console.log(`Deleting branch ${branch.name} (no open PRs).`);
+        log(`Deleting branch ${branch.name} (no open PRs).`);
         try {
           await github.rest.git.deleteRef({
             owner,
@@ -108,7 +109,7 @@ const run = async ({ github, context }) => {
           });
           summary.deletedBranches += 1;
         } catch (error) {
-          console.log(
+          log(
             `Failed to delete branch ${branch.name}: ${error.message}`,
           );
         }
@@ -129,11 +130,11 @@ const run = async ({ github, context }) => {
 
       if (!pr.draft && !hasDeskCheck) {
         if (dryRun) {
-          console.log(
+          log(
             `[dry-run] Would convert PR #${pr.number} to draft (no desk check).`,
           );
         } else {
-          console.log(`Converting PR #${pr.number} to draft (no desk check).`);
+          log(`Converting PR #${pr.number} to draft (no desk check).`);
           await github.rest.pulls.update({
             owner,
             repo,
@@ -147,9 +148,9 @@ const run = async ({ github, context }) => {
 
       if (pr.draft && olderThanCutoff(pr.updated_at, now, cutoffMs)) {
         if (dryRun) {
-          console.log(`[dry-run] Would close stale draft PR #${pr.number}.`);
+          log(`[dry-run] Would close stale draft PR #${pr.number}.`);
         } else {
-          console.log(`Closing stale draft PR #${pr.number}.`);
+          log(`Closing stale draft PR #${pr.number}.`);
           await github.rest.pulls.update({
             owner,
             repo,
@@ -173,7 +174,7 @@ const run = async ({ github, context }) => {
     dryRun,
   });
 
-  console.log(
+  log(
     `[janitor] Summary scanned=${summary.scannedBranches} stale=${summary.staleBranches} approvals=${summary.approvalBranches} deleted=${summary.deletedBranches} prsDrafted=${summary.prsDrafted} prsClosed=${summary.prsClosed}`,
   );
 };

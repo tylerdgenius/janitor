@@ -53,6 +53,9 @@ runs:
         DRY_RUN: ${{ inputs.dry_run }}
       with:
         script: |
+          core.info("[janitor] Loading action script.");
           const path = require("path");
           const run = require(path.join(process.env.GITHUB_ACTION_PATH, "scripts/repo-janitor.js"));
-          await run({ github, context });
+          core.info("[janitor] Running action script.");
+          await run({ github, context, core });
+          core.info("[janitor] Action script finished.");
