@@ -185,13 +185,24 @@ const run = async ({ github, context, core }) => {
         } else {
           log(`Converting PR #${pr.number} to draft (no desk check).`);
           try {
-            await github.rest.pulls.update({
+            const updateResponse = await github.rest.pulls.update({
               owner,
               repo,
               pull_number: pr.number,
               draft: true,
             });
             summary.prsDrafted += 1;
+            log(
+              `[janitor] PR #${pr.number} update status=${updateResponse.status} draft=${updateResponse.data?.draft}`,
+            );
+            const { data: refreshedPr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: pr.number,
+            });
+            log(
+              `[janitor] PR #${pr.number} refreshed draft=${refreshedPr.draft} state=${refreshedPr.state}`,
+            );
           } catch (error) {
             logError(
               `[janitor] Failed to convert PR #${pr.number} to draft: ${error.message}`,
