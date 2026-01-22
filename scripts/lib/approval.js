@@ -135,6 +135,19 @@ const requestApprovalAndMaybeDelete = async ({
     body: outcomeLines.join("\n"),
   });
 
+  try {
+    await issueGithub.rest.issues.update({
+      owner,
+      repo,
+      issue_number: issue.number,
+      state: "closed",
+    });
+  } catch (error) {
+    console.log(
+      `[janitor] [approval.requestApprovalAndMaybeDelete] failed to close issue=${issue.number}: ${error.message}`,
+    );
+  }
+
   return {
     issueNumber: issue.number,
     decision,
