@@ -3,13 +3,14 @@ const { deleteBranches } = require("./branch-delete");
 
 const getApprovalDecision = async ({
   github,
+  issueGithub,
   owner,
   repo,
   issueNumber,
   approvers,
 }) => {
   console.log("[janitor] [approval.getApprovalDecision] start");
-  const comments = await github.paginate(github.rest.issues.listComments, {
+  const comments = await github.paginate(issueGithub.rest.issues.listComments, {
     owner,
     repo,
     issue_number: issueNumber,
@@ -34,6 +35,7 @@ const getApprovalDecision = async ({
 
 const requestApprovalAndMaybeDelete = async ({
   github,
+  issueGithub,
   owner,
   repo,
   branches,
@@ -47,7 +49,9 @@ const requestApprovalAndMaybeDelete = async ({
   }
 
   if (dryRun) {
-    console.log(`[dry-run] Would create approval issue for branches: ${branches.join(", ")}`);
+    console.log(
+      `[dry-run] Would create approval issue for branches: ${branches.join(", ")}`,
+    );
     return { dryRun: true };
   }
 
@@ -68,7 +72,7 @@ const requestApprovalAndMaybeDelete = async ({
     .filter(Boolean)
     .join("\n");
 
-  const { data: issue } = await github.rest.issues.create({
+  const { data: issue } = await issueGithub.rest.issues.create({
     owner,
     repo,
     title: `Repo Janitor approval: delete ${branches.length} branches`,
@@ -82,6 +86,7 @@ const requestApprovalAndMaybeDelete = async ({
   while (Date.now() < deadline) {
     decision = await getApprovalDecision({
       github,
+      issueGithub,
       owner,
       repo,
       issueNumber: issue.number,
@@ -95,23 +100,37 @@ const requestApprovalAndMaybeDelete = async ({
 
   const shouldDelete = decision !== "deny";
   const deletedBranches = shouldDelete
-    ? await deleteBranches({ github, owner, repo, branches, source: "approval" })
+    ? await deleteBranches({
+        github,
+        owner,
+        repo,
+        branches,
+        source: "approval",
+      })
     : [];
 
   const outcomeLines = [];
   if (decision) {
     outcomeLines.push(`Decision: ${decision}.`);
   } else {
-    outcomeLines.push(`No response in ${issueWaitMinutes} minutes. Defaulting to delete.`);
+    outcomeLines.push(
+      `No response in ${issueWaitMinutes} minutes. Defaulting to delete.`,
+    );
   }
 
   if (shouldDelete) {
-    outcomeLines.push("", "Deleted branches:", "```", ...deletedBranches, "```");
+    outcomeLines.push(
+      "",
+      "Deleted branches:",
+      "```",
+      ...deletedBranches,
+      "```",
+    );
   } else {
     outcomeLines.push("", "No branches were deleted.");
   }
 
-  await github.rest.issues.createComment({
+  await issueGithub.rest.issues.createComment({
     owner,
     repo,
     issue_number: issue.number,

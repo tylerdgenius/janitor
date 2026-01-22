@@ -237,6 +237,7 @@ const run = async ({ github, context, core }) => {
 
   // Issue-based approval flow for branches outside allow patterns.
   await requestApprovalAndMaybeDelete({
+    github,
     issueGithub,
     owner,
     repo,
