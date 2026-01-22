@@ -236,8 +236,7 @@ const run = async ({ github, context, core }) => {
   let issueGithub = github;
   if (issueToken) {
     try {
-      const { getOctokit } = require("@actions/github");
-      issueGithub = getOctokit(issueToken);
+      issueGithub = new github.constructor({ auth: issueToken });
     } catch (error) {
       logError(
         `[janitor] Failed to initialize issue token Octokit: ${error.message}`,
