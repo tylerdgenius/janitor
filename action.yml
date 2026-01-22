@@ -9,6 +9,10 @@ inputs:
     description: "GitHub token with issues: write to open approval issues."
     required: false
     default: ${{ github.token }}
+  issue_token:
+    description: "GitHub token with issues: write to open approval issues. Overrides github_token if provided."
+    required: false
+    default: ""
   branch_age_days:
     description: Minimum branch age in days before applying cleanup rules.
     required: false
@@ -52,6 +56,7 @@ runs:
         BRANCH_DENY_PATTERNS: ${{ inputs.branch_deny_patterns }}
         DESK_CHECK_LABEL: ${{ inputs.desk_check_label }}
         DESK_CHECK_COMMENT_PHRASE: ${{ inputs.desk_check_comment_phrase }}
+        ISSUE_TOKEN: ${{ inputs.issue_token }}
         ISSUE_MENTION_USERS: ${{ inputs.issue_mention_users }}
         ISSUE_WAIT_MINUTES: ${{ inputs.issue_wait_minutes }}
         DRY_RUN: ${{ inputs.dry_run }}
