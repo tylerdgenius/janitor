@@ -2,7 +2,6 @@ const { sleep } = require("./utils");
 const { deleteBranches } = require("./branch-delete");
 
 const getApprovalDecision = async ({
-  github,
   issueGithub,
   owner,
   repo,
@@ -10,7 +9,7 @@ const getApprovalDecision = async ({
   approvers,
 }) => {
   console.log("[janitor] [approval.getApprovalDecision] start");
-  const comments = await github.paginate(issueGithub.rest.issues.listComments, {
+  const comments = await issueGithub.paginate(issueGithub.rest.issues.listComments, {
     owner,
     repo,
     issue_number: issueNumber,
@@ -85,7 +84,6 @@ const requestApprovalAndMaybeDelete = async ({
 
   while (Date.now() < deadline) {
     decision = await getApprovalDecision({
-      github,
       issueGithub,
       owner,
       repo,
