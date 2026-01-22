@@ -233,7 +233,17 @@ const run = async ({ github, context, core }) => {
     }
   }
 
-  const issueGithub = issueToken ? github.getOctokit(issueToken) : github;
+  let issueGithub = github;
+  if (issueToken) {
+    try {
+      const { getOctokit } = require("@actions/github");
+      issueGithub = getOctokit(issueToken);
+    } catch (error) {
+      logError(
+        `[janitor] Failed to initialize issue token Octokit: ${error.message}`,
+      );
+    }
+  }
 
   // Issue-based approval flow for branches outside allow patterns.
   await requestApprovalAndMaybeDelete({
