@@ -9,6 +9,7 @@ const loadConfig = (env) => {
     mentionUsersInput: String(env.ISSUE_MENTION_USERS || ""),
     issueWaitMinutes: Number(env.ISSUE_WAIT_MINUTES || 20),
     dryRun: String(env.DRY_RUN || "false").toLowerCase() === "true",
+    issueToken: String(env.ISSUE_TOKEN || "").trim(),
   };
 };
 
